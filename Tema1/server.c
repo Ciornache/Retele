@@ -19,7 +19,7 @@
 char command[BUFFER_SIZE], response[BUFFER_SIZE];
 char buffer[BUFFER_SIZE];
 
-void removeProcess(const char * id, int fd);
+void removeProcess(const char * id, int * fd);
 int checkIfInformationIsValid(const char * info, const char * fileName);
 void handleLogin(const char * username, const char * id);
 void handleGetLoggedUsers(const char * id, int sfd);
@@ -145,6 +145,7 @@ int checkIfInformationIsValid(const char * info, const char * fileName)
     }
 
     char name[BUFFER_SIZE];
+    name[0] = 0;
     int j = 0;
     int bytes_read;
     while((bytes_read = read(fd, buffer, sizeof(buffer))) > 0)
@@ -205,8 +206,8 @@ void handleLogOut(const char * id)
 {
     if(checkIfInformationIsValid(id, "processes.txt") == 1) 
     {
-        int fd = open("processes.txt", O_WRONLY);
-        removeProcess(id, fd);
+        int fd = open("processes.txt", O_RDONLY);
+        removeProcess(id, &fd);
         printf("Server: Am deconectat procesul cu id-ul %s de la server!\n", id);
     }
     else {
@@ -214,29 +215,38 @@ void handleLogOut(const char * id)
     }
 }
 
-void removeProcess(const char * id, int fd)
+void removeProcess(const char * id, int * fd)
 {
-    ftruncate(fd, BUFFER_SIZE);
-    char name[BUFFER_SIZE];
+    char name[BUFFER_SIZE], text[BUFFER_SIZE];
+    text[0] = 0;
     int j = 0;
     int bytes_read;
-    while((bytes_read = read(fd, buffer, sizeof(buffer))) > 0)
+    
+    while((bytes_read = read(*fd, buffer, sizeof(buffer))) > 0)
     {
         j = 0;
         int i;
-        for(i = 0; i < bytes_read; i++)
+        for(i = 0; i < bytes_read; i++) {
             if(buffer[i] != ' ')
                 name[j++] = buffer[i];
             else {
                 name[j] = 0;
+                ///if(j) printf("%s %s\n", name, id);
                 if(strcmp(name, id) != 0) 
                 {
-                    write(fd, name, strlen(name));
-                    write(fd, " ", 1);                   
+                    ///printf("%s %d\n", text, strlen(name));
+                    strcat(text, name); strcat(text, " ");
                 }
                 j = 0;
             }
+        }
     }
+    close(*fd);
+    ///printf("Text final: %s %d\n", text, strlen(text));
+    int fd2 = open("processes.txt", O_WRONLY);
+    ftruncate(fd2, 0); ftruncate(fd2, BUFFER_SIZE);
+    write(fd2, text, strlen(text));
+    close(fd2);
 }
 
 void getProcInfo(const char * pid, int sfd)
