@@ -14,6 +14,7 @@
 #include <utmp.h>
 
 #define BUFFER_SIZE 4096
+#define PATH_SIZE 100
 
 char command[BUFFER_SIZE], response[BUFFER_SIZE];
 char buffer[BUFFER_SIZE];
@@ -72,13 +73,6 @@ int main(int arg, char * argv[])
         exit(3);
     }
 
-    int fdsc = open("server_to_client.fifo", O_WRONLY);
-    if(fdsc == -1)
-    {
-        perror("Server: Eroare la deschiderea canalului de comunicate intre server si client!\n");
-        exit(11);
-    }
-
     while((bytes_read = read(fdr, command, sizeof(command))) > 0)
     {
         ///write(1, command, bytes_read);
@@ -93,6 +87,27 @@ int main(int arg, char * argv[])
         int fid = fork();
         if(fid != 0)
         {
+
+            int j = strlen(command) - 2;
+            while(command[j] >= '0' && command[j] <= '9')
+                j--;
+            
+            char id[20], username[101];
+            strcpy(id, command + j + 1);
+            id[strlen(command) - 2 - j] = 0;
+
+            char path[PATH_SIZE];
+            strcpy(path, "server_to_client");
+            strcat(path, id); strcat(path, ".fifo");
+            ///printf("%s\n", path); 
+
+            int fdsc = open(path, O_WRONLY);
+            if(fdsc == -1)
+            {
+                perror("Eroare la deschiderea fifo-ului de comunicare intre server si client!\n");
+                exit(10);
+            }
+
             close(sfd[0]);
             waitpid(fid, NULL, 0);
             char response[BUFFER_SIZE];
@@ -103,6 +118,7 @@ int main(int arg, char * argv[])
                 write(fdsc, response, strlen(response));
             }  
             close(sfd[1]);
+            close(fdsc);
         }
         else 
         {
@@ -112,12 +128,9 @@ int main(int arg, char * argv[])
         }
         fflush(NULL);
     }
-
     close(sfd[1]);
     close(fdr);
-    close(fdsc);
     exit(0);
-
 }
 
 
@@ -143,6 +156,7 @@ int checkIfInformationIsValid(const char * info, const char * fileName)
                 name[j++] = buffer[i];
             else {
                 name[j] = 0;
+                ///printf("%s %s\n", name, info);
                 if(strcmp(name, info) == 0)
                     return 1;
                 j = 0;
@@ -174,7 +188,8 @@ void handleLogin(const char * username, const char * id)
             int s = strlen(id);
             id2[s] = ' ';
             id2[s + 1] = 0;
-            write(fdp, id2, sizeof(id2));
+            ///printf("%s\n", id2);
+            write(fdp, id2, s + 1);
             close(fdp);
             fflush(NULL);
         }
@@ -214,11 +229,11 @@ void removeProcess(const char * id, int fd)
                 name[j++] = buffer[i];
             else {
                 name[j] = 0;
-                if(strcmp(name, id) != 0) {
+                if(strcmp(name, id) != 0) 
+                {
                     write(fd, name, strlen(name));
                     write(fd, " ", 1);                   
                 }
-                
                 j = 0;
             }
     }
@@ -253,7 +268,8 @@ void getProcInfo(const char * pid, int sfd)
             }
             j = 0;
         }
-        else if(ch == '\n') {
+        else if(ch == '\n')
+        {
             info[j] = 0;
             if(ok) {
                 strcat(response, desiredLabels[ok - 1]);
@@ -263,7 +279,8 @@ void getProcInfo(const char * pid, int sfd)
             }
             ok = j = 0;
         }
-        else {
+        else 
+        {
             if(ok) info[j++] = ch;
             else label[j++] = ch;
         }
@@ -308,14 +325,13 @@ void handleGetLoggedUsers(const char * id, int sfd)
             snprintf(number, sizeof(number), "%d\n", info->ut_tv.tv_sec);
             strcat(response, number);
         }
-
         snprintf(message, sizeof(strlen(response)), "%d ", strlen(response));
         strcat(message, response);
         write(sfd, message, strlen(message));
-
         printf("Server: Am procesat comanda get-logged-users!\n");
     }
-    else {
+    else 
+    {
         write(sfd, "0", 1);
         printf("Server: Comanda nu a putut fi executata. Procesul cu id-ul %s nu este conectat la server!\n", id);
     }
@@ -365,8 +381,10 @@ void handleCommand(char * command, int sfd[])
         handleLogOut(id);
         write(sfd[0], "0", 1);
     }
-    else 
+    else if(strcmp(prefix, "quit") == 0)
+    {
         write(sfd[0], "0", 1);
-    
+        printf("Server: Clientul cu id-ul %s s-a deconenctat!\n", id);
+    }
     close(sfd[0]);
 }

@@ -12,6 +12,7 @@
 #include <time.h>
 
 #define BUFFER_SIZE 4096
+#define PATH_SIZE 100
 
 char command[BUFFER_SIZE], response[BUFFER_SIZE];
 
@@ -20,7 +21,8 @@ int main(int arg, char * argv[])
 
     int bytes_read;
 
-    if(mkfifo("client_to_server.fifo", 0777) == -1) {
+    if(mkfifo("client_to_server.fifo", 0777) == -1)
+    {
         if(errno != EEXIST) 
         {
             perror("Client: Eroare la crearea fifo-ului!\n");
@@ -28,7 +30,14 @@ int main(int arg, char * argv[])
         }
     }
 
-    if(mkfifo("server_to_client.fifo", 0777) == -1)
+    int id = getpid();
+    char sid[PATH_SIZE], path[PATH_SIZE];
+    snprintf(sid, sizeof(sid), "%d", id);
+    strcpy(path, "server_to_client");
+    strcat(path, sid); strcat(path, ".fifo");
+    ///printf("%s\n", path); 
+
+    if(mkfifo(path, 0777) == -1)
     {
         if(errno != EEXIST)
         {
@@ -44,19 +53,11 @@ int main(int arg, char * argv[])
         exit(4);
     }
 
-    int fdsc = open("server_to_client.fifo", O_RDONLY);
-    if(fdsc == -1)
-    {
-        perror("Client: Eroare la deschiderea canalului de comunicatie intre server si client!\n");
-        exit(5);
-    }
-
     int ok = 0;
-
-    while((bytes_read = read(0, command, sizeof(command))) > 0 && !ok)
+    while(!ok && (bytes_read = read(0, command, sizeof(command))) > 0)
     {
         command[bytes_read] = 0;
-        if(strcmp(command, "quit") == 0) 
+        if(strcmp(command, "quit\n") == 0) 
             ok = 1;
 
         snprintf(command + bytes_read, 10, "%d ", getpid());
@@ -92,6 +93,12 @@ int main(int arg, char * argv[])
         }
         else 
         {
+            int fdsc = open(path, O_RDONLY);
+            if(fdsc == -1)
+            {
+                perror("Client: Eroare la deschiderea canalului de comunicatie intre server si client!\n");
+                exit(5);
+            }
             close(pipe_fd[0]);
             int bytes_read = read(fdsc, response, sizeof(response));
             if(response[0] == '0')
@@ -109,16 +116,17 @@ int main(int arg, char * argv[])
             parentMessage[d] = 0;
             write(pipe_fd[1], parentMessage, sizeof(parentMessage));
             close(pipe_fd[1]);
+            close(fdsc);
             exit(0);
         }
-
         fflush(NULL);
     }
-    
-   
-    close(fdsc);
     close(fdw);
-
+    if(unlink(path) == -1) 
+    {
+        perror("Client: Eroare la stergerea fifo-ului folosit pentru comunicarea intre server si client!\n");
+        exit(11);
+    }
     exit(0);
 
 }
