@@ -21,7 +21,8 @@ int main(int arg, char * argv[])
 
     int bytes_read;
 
-    if(mkfifo("client_to_server.fifo", 0777) == -1) {
+    if(mkfifo("client_to_server.fifo", 0777) == -1)
+    {
         if(errno != EEXIST) 
         {
             perror("Client: Eroare la crearea fifo-ului!\n");
@@ -53,11 +54,10 @@ int main(int arg, char * argv[])
     }
 
     int ok = 0;
-
-    while((bytes_read = read(0, command, sizeof(command))) > 0 && !ok)
+    while(!ok && (bytes_read = read(0, command, sizeof(command))) > 0)
     {
         command[bytes_read] = 0;
-        if(strcmp(command, "quit") == 0) 
+        if(strcmp(command, "quit\n") == 0) 
             ok = 1;
 
         snprintf(command + bytes_read, 10, "%d ", getpid());
@@ -119,12 +119,14 @@ int main(int arg, char * argv[])
             close(fdsc);
             exit(0);
         }
-
         fflush(NULL);
     }
-    
-   
     close(fdw);
+    if(unlink(path) == -1) 
+    {
+        perror("Client: Eroare la stergerea fifo-ului folosit pentru comunicarea intre server si client!\n");
+        exit(11);
+    }
     exit(0);
 
 }
