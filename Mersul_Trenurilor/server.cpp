@@ -17,6 +17,7 @@
 #include "train.h"
 #include "database.h"
 #include <condition_variable>
+#include "helpmessages.h"
 
 using namespace tinyxml2;
 
@@ -60,9 +61,12 @@ std::string handle_delay(std::string header, std::vector<std::string> args);
 std::string handle_getSchedule(std::string header, std::vector<std::string> args);
 std::string handle_nextHourArrivals();
 std::string handle_nextHourDepartures();
-std::string handle_addNotification(int train_id, int client_id);
+std::string handle_addAlarm(int train_id, int client_id);
 std::string handle_login(std::string name, std::string password);
 std::string handle_register(std::string name, std::string password, int user_id);
+std::string handle_help();
+std::string handle_quit(int client_id);
+std::string handle_disableAlarm(int train_id, int client_id);
 
 
 void handleCommand(std::string command, std::string header, std::vector<std::string> args, int client);
@@ -117,9 +121,11 @@ int main()
     {
         socklen_t length = sizeof(from);
         client = accept(sfd, (struct sockaddr *)&from, &length);
-
         if (client < 0) 
-            handleError(header + "Not able to accept the client", 5);
+        { 
+            std::cout << header << "Not able to accept the client\n";
+            continue;
+        }
         std::cout << header << "A client connected to the server!\n";
         threads.push_back(std::thread(handleClient, client));
     }
@@ -129,7 +135,6 @@ int main()
             thread.join();
 
     close(sfd);
-
     return 0;
 }
 
@@ -156,25 +161,32 @@ void updateTrainDelay()
     {
         /// Calculez delay-ul maxim care a fost submitted la momentul de timp time
 
-        int max_delay = -1e9;
+        int max_delay = 0;
         for(auto delay : train->delays[globalTime.to_string()])
             max_delay = std::max(max_delay, delay);
-        
+
         bool delay_add = false;
         int lastRouteDelay = 0, prevTotalTime = 0;
         TimeStamp startTime;
         ScheduleElement * lastRoute = NULL;
 
-        for(auto route : train->schedule[day_id]) 
+        for(unsigned int idx = 0;idx < train->schedule[day_id].size(); idx++)
         {
-            lastRoute = &route;
+            ScheduleElement route = train->schedule[day_id][idx];
             if(delay_add)
                 break;
-
+            if(idx + 1 < train->schedule[day_id].size())
+                lastRoute = &train->schedule[day_id][idx + 1];
             startTime = route.startTime;
             int total_time = 0;
             TimeStamp prevStartTime;
             Road * road = route.road;
+
+            if(route.isReversed)
+            {
+                while(road->nextRoad != NULL)
+                    road = road->nextRoad;
+            }
 
             /// Actualizez ultimul delay submitted pentru fiecare drum 
 
@@ -182,7 +194,10 @@ void updateTrainDelay()
             {
                 if(road->last_delay > 0)
                     road->last_delay--;
-                road = road->nextRoad;
+                if(!route.isReversed)
+                     road = road->nextRoad;
+                else 
+                     road = road->prevRoad;
             }
 
             /// Daca delay-ul maxim nu este cuprins in last_delay, atunci last_delay si delay cresc
@@ -190,6 +205,13 @@ void updateTrainDelay()
             bool ok = false;
             road = route.road;
             total_time = 0;
+
+            if(route.isReversed)
+            {
+                while(road->nextRoad != NULL)
+                    road = road->nextRoad;
+            }
+
             while(road != NULL && !ok)
             {
                 total_time += road->time;
@@ -200,31 +222,39 @@ void updateTrainDelay()
                     {
                         int new_delay = max_delay - road->last_delay;
                         road->last_delay += new_delay; road->delay += new_delay;
-                        Road * cpRoad = road->nextRoad;
+                        Road * cpRoad = NULL;
+                        if(!route.isReversed)
+                            cpRoad = road->nextRoad;
+                        else 
+                            cpRoad = road->prevRoad;
                         while(cpRoad != NULL) 
                         {
                             cpRoad->delay += new_delay;
                             lastRouteDelay = cpRoad->delay;
-                            cpRoad = cpRoad->nextRoad;
+                            if(!route.isReversed)
+                                 cpRoad = cpRoad->nextRoad;
+                            else 
+                                 cpRoad = cpRoad->prevRoad;
                         }
-                        delay_add = true;
                         
+                        delay_add = true;
                     }
                     ok = true;
                 }
-                road = road->nextRoad;
+                if(!route.isReversed)
+                    road = road->nextRoad;
+                else 
+                    road = road->prevRoad;
             }
 
             prevStartTime = route.startTime;
             prevTotalTime = total_time;
-
         }
 
         /// Daca cumva programul trenului activ va trece peste inceputul urmatorului tren, atunci actualizam inceputul urmatorului tren si schimbam delay-ul
-
         if(delay_add) 
-        {
-            if(startTime + prevTotalTime + lastRouteDelay > lastRoute->startTime) 
+        {        
+            if(lastRoute != NULL && startTime + prevTotalTime + lastRouteDelay > lastRoute->startTime) 
             {
                 int dif = (startTime + prevTotalTime + lastRouteDelay) - lastRoute->startTime;
                 lastRoute->startTime = startTime + prevTotalTime + lastRouteDelay;
@@ -232,7 +262,10 @@ void updateTrainDelay()
                 while(road != NULL)
                 {
                     road->delay += dif;
-                    road = road->nextRoad;
+                    if(!lastRoute->isReversed)
+                         road = road->nextRoad;
+                    else 
+                         road = road->prevRoad;
                 }
             }
         }
@@ -344,6 +377,7 @@ void updateNotifications(int client, int client_id, std::string header)
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
+    std::cout << header << "Client " << client_id << " quitted the applcation and is no longer receiving alarms!\n";
 }
 
 void handleClient(int client)
@@ -360,27 +394,32 @@ void handleClient(int client)
         char request[BUFFER_SIZE];
         memset(request, false, sizeof(request));
         int bytes_read;
-        if((bytes_read = read(client, request, sizeof(request))) <= 0)
-            handleError(header + "Unable to read from client!\n", 5);
-        
+        ///std::cout << request << '\n';
+        if((bytes_read = read(client, request, sizeof(request))) <= 0) 
+        {
+            std::cout << header << "Unable to read from client!\n" << '\n';
+            continue;
+        }
         if(strlen(request) > 0) 
         {
             std::cout << header << "Received " << request << " from client!\n";
             std::string command(request);
 
-            if(command.substr(0, 4) == "quit")
-                break;
-
             std::pair<bool, std::vector<std::string>> valid = validateCommand(command, header);
             if(!valid.first) 
             {
                 char response[BUFFER_SIZE];
-                memset(response, 0, sizeof(response)); strcpy(response, "Invalid command");
-                write(client, response, sizeof(response));
+                memset(response, 0, sizeof(response)); 
+                strcpy(response, "Invalid command\n");
+                if(write(client, response, sizeof(response)) <= 0)
+                    std::cout << header << "Error: Cannot send response back to the client!\n";
                 continue;
             }
             client_id = std::stoi(valid.second.back());
             handleCommand(command, header, valid.second, client);
+
+            if(command.substr(0, 4) == "quit") 
+                break;
         }
 
         if(client_id != -1 && !isThreadActive[client_id]) 
@@ -394,16 +433,20 @@ void handleClient(int client)
     if(client_id != -1)
         isThreadActive[client_id] = 0;
     
+    if(t->joinable())
+        t->join();
+    
     delete t;
 }
 
 void notifyClient(int client, int client_id, std::string header)
 {
-    std::cout << "Notifying at " << globalTime.to_string() << '\n';
     Database database("users.db");
     std::vector<int> notifiableTrains = database.getNotifiableTrains(client_id);
     int day_id = globalTime.getDayIndex();
     std::string schedule;
+    schedule += "Notification:\n";
+
     for(auto train_id : notifiableTrains)
     {
         for(auto train : trains)
@@ -420,7 +463,13 @@ void notifyClient(int client, int client_id, std::string header)
                         total_time += road->time;
                         int dif = (startTime + total_time + road->delay) - globalTime;
                         if(dif == 5 || dif == 15 || dif == 30) 
-                            schedule += "Train " + std::to_string(train_id) + " arrives in station " + std::to_string(road->to_station) + " in " + std::to_string(dif) + " minutes\n";
+                        {
+                            schedule += "Train " + std::to_string(train_id) + " arrives in station " + std::to_string(road->to_station) + " in " + std::to_string(dif) + " minutes. "; 
+                            if(road->delay > 0)
+                                schedule += "Delay of " + std::to_string(road->delay) + " minutes\n";
+                            else 
+                                schedule += "\n";
+                        }
                         if(dif > 0)
                             break;
                         road = road->nextRoad;
@@ -430,9 +479,9 @@ void notifyClient(int client, int client_id, std::string header)
             }
         }
     }
-
-    if(schedule.size() > 0) 
+    if(schedule.size() > 14) 
     {
+        // std::cout << header << schedule << '\n';
         char response[MAX_SCHEDULE_SIZE];
         memset(response, false, sizeof(response));
         strcpy(response, schedule.c_str());
@@ -457,47 +506,60 @@ std::pair<bool, std::vector<std::string>> validateCommand(std::string command, s
     if(commandName == "get-schedule")
     {
         if(args.size() > 3)
+        {
             std::cout << header + "Too many arguments for command " + commandName << '\n';
+            answer.first = false;
+        }
     }
     else if(commandName == "add-delay")
     {
         if(args.size() != 3)
-            std::cout << header + "Syntax " + commandName + " <train_id> <number_of_minutes>" << '\n';
+            std::cout << header + "Syntax " + commandName + "add-delay <train_id> <number_of_minutes>" << '\n', answer.first = false;
     }
     else if(commandName == "next-hour-departures")
     {
         if(args.size() != 1)
-            std::cout << header + "Command " + commandName + " doesn't require any arguments!" << '\n';
+            std::cout << header + "Command " + commandName + " doesn't require any arguments!" << '\n', answer.first = false;
     }
     else if(commandName == "next-hour-arrivals")
     {
         if(args.size() != 1)
-            std::cout << header + "Command " + commandName + " doesn't require any arguments!" << '\n';
+            std::cout << header + "Command " + commandName + " doesn't require any arguments!" << '\n', answer.first = false;
     }
     else if(commandName == "register")
     {
         if(args.size() != 3)
-            std::cout << header + "Command " + commandName + " syntax <username> <password>" << '\n';
+            std::cout << header + "Command " + commandName + " syntax: register <username> <password>" << '\n', answer.first = false;
     }
     else if(commandName == "login")
     {
         if(args.size() != 3)
-            std::cout << header + "Command " + commandName + " syntax <username> <password>" << '\n';
+            std::cout << header + "Command " + commandName + " syntax: login <username> <password>" << '\n', answer.first = false;
     }
     else if(commandName == "help")
     {
-        if(args.size() != 1)
-            std::cout << header << "Command " + commandName + " doesn't require any arguments!\n";
+        if(args.size() > 2)
+            std::cout << header << "Too many arguments for command " << commandName << '\n', answer.first = false;
     }
-    else if(commandName == "add-notification")
+    else if(commandName == "add-alarm")
     {
         if(args.size() != 2)
-            std::cout << header << "Command " + commandName + " syntax <train_id>" << '\n';
+            std::cout << header << "Command " + commandName + " syntax: add-alarm <train_id>" << '\n', answer.first = false;
     }
     else if(commandName == "logout")
     {
         if(args.size() != 1)
-            std::cout << header << "Command " + commandName + " doesn't require any parameters" << '\n';
+            std::cout << header << "Command " + commandName + " doesn't require any parameters" << '\n', answer.first = false;
+    }
+    else if(commandName == "quit")
+    {
+        if(args.size() != 1)
+            std::cout << header << "Command " + commandName + " doesn't require any parameters" << '\n', answer.first = false;
+    }
+    else if(commandName == "disable-alarm")
+    {
+        if(args.size() != 2)
+            std::cout << header << "Comamnd " + commandName + " syntax: disable-alarm <train_id>\n", answer.first = false;
     }
     else 
         answer.first = false;
@@ -522,7 +584,7 @@ std::string handle_delay(std::string header, std::vector<std::string> args)
     Train * train = findTrainById(train_id);
     std::unique_lock<std::mutex> lock(m);
     train->addDelay(globalTime, delay);
-    return "Update successful. Added delay to train " + std::to_string(train_id);
+    return "Update successful. Added delay to train " + std::to_string(train_id) + "\n";
 }
 
 std::string handle_getSchedule(std::string header, std::vector<std::string> args)
@@ -622,19 +684,32 @@ std::string handle_nextHourArrivals()
              Road * road = route.road;
              int total_time = 0;
              TimeStamp startTime = route.startTime;
+
+             if(route.isReversed) 
+             {
+                 while(road->nextRoad != NULL)
+                    road = road->nextRoad;
+             }
+
              while(road != NULL)
              {
                 total_time += road->time;                
                 int minutes = (startTime + total_time + road->delay) - globalTime;
                 if(minutes >= 0 && minutes <= 60)
-                {                
-                    schedule += "Train " + std::to_string(train->train_id) + " arrives in station " + std::to_string(road->to_station) + " in " + std::to_string(minutes) + " minutes. ";
+                {   
+                    if(!route.isReversed)
+                        schedule += "Train " + std::to_string(train->train_id) + " arrives in station " + std::to_string(road->to_station) + " in " + std::to_string(minutes) + " minutes. ";
+                    else 
+                        schedule += "Train " + std::to_string(train->train_id) + " arrives in station " + std::to_string(road->from_station) + " in " + std::to_string(minutes) + " minutes. ";
+
                     if(road->delay == 0)
                         schedule += "All according to the plan. No delays\n";
                     else if(road->delay > 0)
                         schedule += "Delay: " + std::to_string(road->delay) + "\n";
                 }
-                road = road->nextRoad;
+                if(!route.isReversed)
+                    road = road->nextRoad;
+                else road = road->prevRoad;
              }
         }
     }
@@ -653,19 +728,31 @@ std::string handle_nextHourDepartures()
              Road * road = route.road;
              int total_time = 0;
              TimeStamp startTime = route.startTime;
+
+             if(route.isReversed) 
+             {
+                 while(road->nextRoad != NULL)
+                    road = road->nextRoad;
+             }
+
              while(road != NULL)
              {
                 int minutes = (startTime + total_time + road->delay) - globalTime;
                 if(minutes >= 0 && minutes <= 60)
-                {                
-                    schedule += "Train " + std::to_string(train->train_id) + " leaves station " + std::to_string(road->from_station) + " in " + std::to_string(minutes) + " minutes. ";
+                {   
+                    if(!route.isReversed)             
+                       schedule += "Train " + std::to_string(train->train_id) + " leaves station " + std::to_string(road->from_station) + " in " + std::to_string(minutes) + " minutes. ";
+                    else
+                       schedule += "Train " + std::to_string(train->train_id) + " leaves station " + std::to_string(road->from_station) + " in " + std::to_string(minutes) + " minutes. ";
                     if(road->delay == 0)
                         schedule += "All according to the plan. No delays\n";
                     else if(road->delay > 0)
                         schedule += "Delay: " + std::to_string(road->delay) + "\n";
                 }
                 total_time += road->time;                
-                road = road->nextRoad;
+                if(!route.isReversed)
+                    road = road->nextRoad;
+                else road = road->prevRoad;
              }
         }
     }
@@ -702,14 +789,19 @@ std::string handle_login(std::string name, std::string password, int client_id)
     return "Client " + std::to_string(client_id) + " connected to the account!\n";
 }
 
-std::string handle_addNotification(int train_id, int client_id)
+std::string handle_addAlarm(int train_id, int client_id)
 {
     Database database("users.db");
     std::pair<bool,bool> ok = database.isUserLoggedIn(client_id);
     if(!ok.second)
-        return "Error: Log into an account to add a notification!\n";
-    database.insertNotification(train_id, client_id);
-    return "Added notification for train " + std::to_string(train_id) + " succesfully!\n";
+        return "Error: Log into an account to add an alarm!\n";
+    if(!database.isAlarmOnFor(train_id, client_id)) 
+    {
+        database.insertNotification(train_id, client_id);
+        return "Added alarm for train " + std::to_string(train_id) + " succesfully!\n";
+    }
+    else 
+        return "Alarm for train " + std::to_string(train_id) + " already exists!\n";
 }
 
 std::string handle_logout(int client_id)
@@ -723,6 +815,39 @@ std::string handle_logout(int client_id)
     }
     else 
         return "Error: Cannot logout user. User is not logged in!\n";
+}
+
+std::string handle_help(std::string commandName)
+{
+    std::string helpMenu;
+    for(auto element : helpMessages)
+        if(commandName == "undefined" || element.first == commandName)  
+            helpMenu = helpMenu + "\n" + element.first + " - " + element.second + "\n";
+
+    return helpMenu;
+}
+
+std::string handle_quit(int client_id)
+{
+    Database database("users.db");
+    bool isClientDeleted = database.deleteClient(client_id);
+    if(!isClientDeleted)
+        return "Error at deleting client " + std::to_string(client_id) + " from the database\n";
+    return "quit\n";
+}
+
+std::string handle_disableAlarm(int train_id, int client_id)
+{
+    Database database("users.db");
+    if(!database.isAlarmOnFor(train_id, client_id))
+        return "Error: There is no alarm added for train " + std::to_string(train_id) + " by client " + std::to_string(client_id) + "\n";
+    else 
+    {
+        bool isDisabled = database.disableAlarm(train_id, client_id);
+        if(!isDisabled)
+            return "Error: Not able to disable alarm for train " + std::to_string(train_id) + "\n";
+        return "Disabled alarm for train " + std::to_string(train_id) + "\n";
+    }
 }
 
 void handleCommand(std::string command, std::string header, std::vector<std::string> args, int client) 
@@ -742,10 +867,22 @@ void handleCommand(std::string command, std::string header, std::vector<std::str
         res = handle_register(args[0], args[1], std::stoi(args[2]));
     else if(command_name == "login")
         res = handle_login(args[0], args[1], std::stoi(args[2]));
-    else if(command_name == "add-notification")
-        res = handle_addNotification(std::stoi(args[0]), std::stoi(args[1]));
+    else if(command_name == "add-alarm")
+        res = handle_addAlarm(std::stoi(args[0]), std::stoi(args[1]));
     else if(command_name == "logout")
         res = handle_logout(std::stoi(args[0]));
+    else if(command_name == "help") 
+    {
+        if(args.size() == 2)
+            res = handle_help(args[0]);
+        else 
+            res = handle_help("undefined");
+    }
+    else if(command_name == "quit")
+        res = handle_quit(std::stoi(args[0]));
+    else if(command_name == "disable-alarm")
+        res = handle_disableAlarm(std::stoi(args[0]), std::stoi(args[1]));
+
     char response[MAX_SCHEDULE_SIZE];
     memset(response, false, sizeof(response));
     strcpy(response, res.c_str());
@@ -776,7 +913,8 @@ void createTableNotifications(std::string header)
     Database database("users.db");
     std::string sql = R"(
         CREATE TABLE IF NOT EXISTS notifications (
-            client_id INTEGER PRIMARY KEY,
+            notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id INTEGER NOT NULL,
             train_id INTEGER NOT NULL
         );
     )";

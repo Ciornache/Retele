@@ -23,5 +23,9 @@ class Database
         bool clearTable(std::string table_name);
         bool updateUser(int client_id, int logged);
         std::vector<int> getNotifiableTrains(int client_id);
+        bool deleteClient(int client_id);
+        bool isAlarmOnFor(int train_id, int client_id);
+        bool disableAlarm(int train_id, int client_id);
+
         ~Database();
 };

@@ -7,6 +7,7 @@ SRC_TIMESTAMP = timestamp.cpp
 SRC_DATABASE= database.cpp
 SRC_TRAIN = train.cpp
 SRC_ROAD = road.cpp
+SRC_HELPMESSAGES = helpmessages.cpp
 
 TARGETS = client server
 
@@ -15,7 +16,7 @@ all: $(TARGETS)
 client: $(SRC_CLIENT)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-server: $(SRC_SERVER) $(SRC_TIMESTAMP) $(SRC_TRAIN) $(SRC_ROAD) $(SRC_DATABASE)
+server: $(SRC_SERVER) $(SRC_TIMESTAMP) $(SRC_TRAIN) $(SRC_ROAD) $(SRC_DATABASE) $(SRC_HELPMESSAGES)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 .PHONY: all clean

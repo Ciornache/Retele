@@ -87,6 +87,7 @@ bool Database::insertClient(int client_id, int logged)
 
 bool Database::insertNotification(int train_id, int client_id)
 {
+    std::cout << "Inserting notification for train " << train_id << " in the " << client_id << " account!\n";
     std::string sql_statement = "INSERT INTO notifications(client_id, train_id) VALUES(?, ?)";
     sqlite3_stmt * stmt;
     int err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
@@ -109,10 +110,7 @@ bool Database::validateUser(std::string name, std::string password)
 {
     std::string sql_statement = "SELECT * FROM users WHERE name = ? AND password = ?";
     sqlite3_stmt * stmt;
-    char query[QUERY_SIZE];
-    memset(query, false, sizeof(query));
-    strcpy(query, sql_statement.c_str());
-    int err = sqlite3_prepare_v2(this->conn, query, sizeof(query), &stmt, 0);
+    int err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
     if(err != SQLITE_OK) 
     {
         sqlite3_finalize(stmt);
@@ -201,15 +199,9 @@ bool Database::updateUser(int client_id, int logged)
 {
     std::string sql_statement = "UPDATE clients SET logged = ? WHERE client_id = ?";
     sqlite3_stmt * stmt;
-    char query[QUERY_SIZE];
-    memset(query, false, sizeof(query));
-    strcpy(query, sql_statement.c_str());
-    int err = sqlite3_prepare_v2(this->conn, query, strlen(query), &stmt, 0);
+    int err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
     if(err != SQLITE_OK) 
-    {
-        sqlite3_finalize(stmt);
         return false;
-    }
 
     sqlite3_bind_int(stmt, 1, logged);
     sqlite3_bind_int(stmt, 2, client_id);
@@ -220,6 +212,71 @@ bool Database::updateUser(int client_id, int logged)
         return false;
     }
 
+    sqlite3_finalize(stmt);
+    return true;
+}
+
+bool Database::deleteClient(int client_id)
+{
+    std::string sql_statement = "DELETE FROM clients WHERE client_id = ?";
+    sqlite3_stmt * stmt;
+    int err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
+    if(err != SQLITE_OK)
+        return false;
+    sqlite3_bind_int(stmt, 1, client_id);
+    if(sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        sqlite3_finalize(stmt);
+        return false;
+    }
+    sqlite3_reset(stmt);
+    sql_statement = "DELETE FROM notifications WHERE client_id = ?";
+    err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
+    if(err != SQLITE_OK)
+        return false;
+    sqlite3_bind_int(stmt, 1, client_id);
+    if(sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        sqlite3_finalize(stmt);
+        return false;
+    }
+
+    return true;
+
+}
+
+bool Database::isAlarmOnFor(int train_id, int client_id)
+{
+    std::string sql_statement = "SELECT * FROM notifications WHERE train_id = ? AND client_id = ?";
+    sqlite3_stmt * stmt;
+    int err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
+    if(err != SQLITE_OK)
+        return false;
+    sqlite3_bind_int(stmt, 1, train_id);
+    sqlite3_bind_int(stmt, 2, client_id);
+    if(sqlite3_step(stmt) != SQLITE_ROW) 
+    {    
+        sqlite3_finalize(stmt);
+        return false;
+    }
+    sqlite3_finalize(stmt);
+    return true;
+}
+
+bool Database::disableAlarm(int train_id, int client_id)
+{
+    std::string sql_statement = "DELETE FROM notifications WHERE train_id = ? AND client_id = ?";
+    sqlite3_stmt * stmt;
+    int err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
+    if(err != SQLITE_OK)
+        return false;
+    sqlite3_bind_int(stmt, 1, train_id);
+    sqlite3_bind_int(stmt, 2, client_id);
+    if(sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        sqlite3_finalize(stmt);
+        return false;
+    }
     sqlite3_finalize(stmt);
     return true;
 }
