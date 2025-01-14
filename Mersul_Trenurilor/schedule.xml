@@ -2,401 +2,488 @@
     <roads>
         <road id="1">
             <segment from_station="1" to_station="5" time="15" />
-            <segment from_station="5" to_station="10" time="25" />
+            <segment from_station="5" to_station="8" time="20" />
+            <segment from_station="8" to_station="10" time="25" />
             <segment from_station="10" to_station="15" time="10" />
-            <segment from_station="15" to_station="20" time="20" />
+            <segment from_station="15" to_station="20" time="18" />
         </road>
         <road id="2">
             <segment from_station="2" to_station="6" time="35" />
-            <segment from_station="6" to_station="12" time="50" />
-            <segment from_station="12" to_station="20" time="60" />
+            <segment from_station="6" to_station="9" time="30" />
+            <segment from_station="9" to_station="12" time="40" />
+            <segment from_station="12" to_station="15" time="50" />
+            <segment from_station="15" to_station="20" time="55" />
             <segment from_station="20" to_station="25" time="45" />
         </road>
         <road id="3">
-            <segment from_station="3" to_station="8" time="40" />
-            <segment from_station="8" to_station="13" time="45" />
-            <segment from_station="13" to_station="18" time="50" />
+            <segment from_station="3" to_station="8" time="38" />
+            <segment from_station="8" to_station="13" time="44" />
+            <segment from_station="13" to_station="18" time="49" />
+            <segment from_station="18" to_station="22" time="55" />
         </road>
         <road id="4">
             <segment from_station="4" to_station="7" time="30" />
-            <segment from_station="7" to_station="14" time="50" />
-            <segment from_station="14" to_station="22" time="70" />
+            <segment from_station="7" to_station="10" time="20" />
+            <segment from_station="10" to_station="14" time="22" />
+            <segment from_station="14" to_station="18" time="35" />
+            <segment from_station="18" to_station="22" time="70" />
         </road>
         <road id="5">
             <segment from_station="1" to_station="3" time="20" />
             <segment from_station="3" to_station="6" time="25" />
             <segment from_station="6" to_station="9" time="35" />
-            <segment from_station="9" to_station="13" time="45" />
+            <segment from_station="9" to_station="12" time="30" />
+            <segment from_station="12" to_station="13" time="15" />
             <segment from_station="13" to_station="16" time="40" />
         </road>
         <road id="6">
             <segment from_station="10" to_station="13" time="40" />
-            <segment from_station="13" to_station="17" time="45" />
-            <segment from_station="17" to_station="22" time="60" />
+            <segment from_station="13" to_station="16" time="25" />
+            <segment from_station="16" to_station="17" time="30" />
+            <segment from_station="17" to_station="22" time="55" />
             <segment from_station="22" to_station="25" time="30" />
         </road>
         <road id="7">
             <segment from_station="2" to_station="4" time="25" />
             <segment from_station="4" to_station="8" time="40" />
-            <segment from_station="8" to_station="11" time="35" />
+            <segment from_station="8" to_station="10" time="35" />
+            <segment from_station="10" to_station="11" time="30" />
         </road>
         <road id="8">
             <segment from_station="5" to_station="7" time="20" />
-            <segment from_station="7" to_station="10" time="30" />
-            <segment from_station="10" to_station="15" time="45" />
+            <segment from_station="7" to_station="9" time="28" />
+            <segment from_station="9" to_station="10" time="25" />
+            <segment from_station="10" to_station="12" time="35" />
+            <segment from_station="12" to_station="15" time="45" />
         </road>
         <road id="9">
             <segment from_station="9" to_station="12" time="30" />
             <segment from_station="12" to_station="16" time="40" />
-            <segment from_station="16" to_station="20" time="50" />
+            <segment from_station="16" to_station="18" time="45" />
+            <segment from_station="18" to_station="20" time="50" />
         </road>
         <road id="10">
             <segment from_station="6" to_station="9" time="35" />
-            <segment from_station="9" to_station="14" time="45" />
-            <segment from_station="14" to_station="19" time="60" />
+            <segment from_station="9" to_station="11" time="20" />
+            <segment from_station="11" to_station="14" time="28" />
+            <segment from_station="14" to_station="17" time="45" />
+            <segment from_station="17" to_station="19" time="60" />
         </road>
     </roads>
-
     <trains>
-        <train id="1">
-            <road id="1" />
-            <schedule>
-                <dailySchedule day="Monday">
-                    <direction type="normal" departure="00:00" />
-                    <direction type="reverse" departure="03:00" />
-                </dailySchedule>
-                <dailySchedule day="Tuesday">
-                    <direction type="normal" departure="01:15" />
-                    <direction type="reverse" departure="04:15" />
-                </dailySchedule>
-                <dailySchedule day="Wednesday">
-                    <direction type="normal" departure="02:30" />
-                    <direction type="reverse" departure="05:30" />
-                </dailySchedule>
-                <dailySchedule day="Thursday">
-                    <direction type="normal" departure="03:45" />
-                    <direction type="reverse" departure="06:45" />
-                </dailySchedule>
-                <dailySchedule day="Friday">
-                    <direction type="normal" departure="05:00" />
-                    <direction type="reverse" departure="08:00" />
-                </dailySchedule>
-                <dailySchedule day="Saturday">
-                    <direction type="normal" departure="06:15" />
-                    <direction type="reverse" departure="09:15" />
-                </dailySchedule>
-                <dailySchedule day="Sunday">
-                    <direction type="normal" departure="07:30" />
-                    <direction type="reverse" departure="10:30" />
-                </dailySchedule>
-            </schedule>
+    <train id="1">
+        <road id="1" />
+        <schedule>
+            <dailySchedule day="Monday">
+                <direction type="normal" departure="00:00" />
+                <direction type="reverse" departure="03:00" />
+                <direction type="reverse" departure="09:00" />
+                <direction type="normal" departure="06:00" />
+                <direction type="reverse" departure="15:00" />
+                <direction type="normal" departure="12:00" />
+            </dailySchedule>
+            <dailySchedule day="Tuesday">
+                <direction type="reverse" departure="04:15" />
+                <direction type="normal" departure="01:15" />
+                <direction type="reverse" departure="16:15" />
+                <direction type="normal" departure="13:15" />
+                <direction type="normal" departure="07:15" />
+                <direction type="reverse" departure="10:15" />
+            </dailySchedule>
+            <dailySchedule day="Wednesday">
+                <direction type="reverse" departure="05:30" />
+                <direction type="normal" departure="02:30" />
+                <direction type="normal" departure="08:30" />
+                <direction type="reverse" departure="11:30" />
+                <direction type="reverse" departure="14:30" />
+                <direction type="normal" departure="17:30" />
+            </dailySchedule>
+            <dailySchedule day="Thursday">
+                <direction type="normal" departure="03:45" />
+                <direction type="reverse" departure="06:45" />
+                <direction type="reverse" departure="12:45" />
+                <direction type="normal" departure="09:45" />
+                <direction type="reverse" departure="15:45" />
+                <direction type="normal" departure="18:45" />
+            </dailySchedule>
+            <dailySchedule day="Friday">
+                <direction type="reverse" departure="08:00" />
+                <direction type="normal" departure="05:00" />
+                <direction type="normal" departure="11:00" />
+                <direction type="reverse" departure="14:00" />
+                <direction type="reverse" departure="17:00" />
+                <direction type="normal" departure="20:00" />
+            </dailySchedule>
+            <dailySchedule day="Saturday">
+                <direction type="normal" departure="06:15" />
+                <direction type="reverse" departure="09:15" />
+                <direction type="normal" departure="12:15" />
+                <direction type="reverse" departure="15:15" />
+                <direction type="reverse" departure="18:15" />
+                <direction type="normal" departure="21:15" />
+            </dailySchedule>
+            <dailySchedule day="Sunday">
+                <direction type="reverse" departure="10:30" />
+                <direction type="normal" departure="07:30" />
+                <direction type="reverse" departure="13:30" />
+                <direction type="normal" departure="16:30" />
+                <direction type="reverse" departure="19:30" />
+                <direction type="normal" departure="22:30" />
+            </dailySchedule>
+        </schedule>
     </train>
-
-        <train id="2">
+    <train id="2">
         <road id="2" />
         <schedule>
             <dailySchedule day="Monday">
-                <direction type="normal" departure="00:30" />
                 <direction type="reverse" departure="03:30" />
+                <direction type="normal" departure="00:30" />
+                <direction type="normal" departure="06:30" />
+                <direction type="reverse" departure="09:30" />
             </dailySchedule>
             <dailySchedule day="Tuesday">
                 <direction type="normal" departure="01:45" />
                 <direction type="reverse" departure="04:45" />
+                <direction type="reverse" departure="10:45" />
+                <direction type="normal" departure="07:45" />
             </dailySchedule>
             <dailySchedule day="Wednesday">
-                <direction type="normal" departure="03:00" />
                 <direction type="reverse" departure="06:00" />
+                <direction type="normal" departure="03:00" />
+                <direction type="normal" departure="09:00" />
+                <direction type="reverse" departure="12:00" />
             </dailySchedule>
             <dailySchedule day="Thursday">
                 <direction type="normal" departure="04:15" />
                 <direction type="reverse" departure="07:15" />
+                <direction type="normal" departure="10:15" />
+                <direction type="reverse" departure="13:15" />
             </dailySchedule>
             <dailySchedule day="Friday">
                 <direction type="normal" departure="05:30" />
                 <direction type="reverse" departure="08:30" />
+                <direction type="reverse" departure="11:30" />
+                <direction type="normal" departure="14:30" />
             </dailySchedule>
             <dailySchedule day="Saturday">
-                <direction type="normal" departure="06:45" />
                 <direction type="reverse" departure="09:45" />
+                <direction type="normal" departure="06:45" />
+                <direction type="reverse" departure="12:45" />
+                <direction type="normal" departure="15:45" />
             </dailySchedule>
             <dailySchedule day="Sunday">
                 <direction type="normal" departure="08:00" />
                 <direction type="reverse" departure="11:00" />
+                <direction type="reverse" departure="14:00" />
+                <direction type="normal" departure="17:00" />
             </dailySchedule>
-            </schedule>
-        </train>
-
-        <train id="3">
-            <road id="3"/>
-            <schedule>
-                <dailySchedule day="Monday">
-                    <direction type="normal" departure="02:00" />
-                    <direction type="reverse" departure="05:00" />
-                </dailySchedule>
-                <dailySchedule day="Tuesday">
-                    <direction type="normal" departure="03:10" />
-                    <direction type="reverse" departure="06:10" />
-                </dailySchedule>
-                <dailySchedule day="Wednesday">
-                    <direction type="normal" departure="04:20" />
-                    <direction type="reverse" departure="07:20" />
-                </dailySchedule>
-                <dailySchedule day="Thursday">
-                    <direction type="normal" departure="05:30" />
-                    <direction type="reverse" departure="08:30" />
-                </dailySchedule>
-                <dailySchedule day="Friday">
-                    <direction type="normal" departure="06:40" />
-                    <direction type="reverse" departure="09:40" />
-                </dailySchedule>
-                <dailySchedule day="Saturday">
-                    <direction type="normal" departure="07:50" />
-                    <direction type="reverse" departure="10:50" />
-                </dailySchedule>
-                <dailySchedule day="Sunday">
-                    <direction type="normal" departure="09:00" />
-                    <direction type="reverse" departure="12:00" />
-                </dailySchedule>
-            </schedule>
-        </train>
-
-        <train id="4">
-            <road id="4"/>
-            <schedule>
-                <dailySchedule day="Monday">
-                    <direction type="normal" departure="03:00" />
-                    <direction type="reverse" departure="06:00" />
-                </dailySchedule>
-                <dailySchedule day="Tuesday">
-                    <direction type="normal" departure="04:10" />
-                    <direction type="reverse" departure="07:10" />
-                </dailySchedule>
-                <dailySchedule day="Wednesday">
-                    <direction type="normal" departure="05:20" />
-                    <direction type="reverse" departure="08:20" />
-                </dailySchedule>
-                <dailySchedule day="Thursday">
-                    <direction type="normal" departure="06:30" />
-                    <direction type="reverse" departure="09:30" />
-                </dailySchedule>
-                <dailySchedule day="Friday">
-                    <direction type="normal" departure="07:40" />
-                    <direction type="reverse" departure="10:40" />
-                </dailySchedule>
-                <dailySchedule day="Saturday">
-                    <direction type="normal" departure="08:50" />
-                    <direction type="reverse" departure="11:50" />
-                </dailySchedule>
-                <dailySchedule day="Sunday">
-                    <direction type="normal" departure="10:00" />
-                    <direction type="reverse" departure="13:00" />
-                </dailySchedule>
-            </schedule>
-        </train>
-
-            <train id="5">
-            <road id="5"/>
-            <schedule>
-                <dailySchedule day="Monday">
-                    <direction type="normal" departure="06:00" />
-                    <direction type="reverse" departure="09:00" />
-                </dailySchedule>
-                <dailySchedule day="Tuesday">
-                    <direction type="normal" departure="07:15" />
-                    <direction type="reverse" departure="10:15" />
-                </dailySchedule>
-                <dailySchedule day="Wednesday">
-                    <direction type="normal" departure="08:30" />
-                    <direction type="reverse" departure="11:30" />
-                </dailySchedule>
-                <dailySchedule day="Thursday">
-                    <direction type="normal" departure="09:45" />
-                    <direction type="reverse" departure="12:45" />
-                </dailySchedule>
-                <dailySchedule day="Friday">
-                    <direction type="normal" departure="11:00" />
-                    <direction type="reverse" departure="14:00" />
-                </dailySchedule>
-                <dailySchedule day="Saturday">
-                    <direction type="normal" departure="12:15" />
-                    <direction type="reverse"  departure="15:15" />
-                </dailySchedule>
-                <dailySchedule day="Sunday">
-                    <direction type="normal" departure="13:30" />
-                    <direction type="reverse" departure="16:30" />
-                </dailySchedule>
-            </schedule>
-        </train>
-
-        <train id="6">
-        <road id="6"/>
-            <schedule>
-                <dailySchedule day="Monday">
-                    <direction type="normal" departure="06:30" />
-                    <direction type="reverse" departure="09:30" />
-                </dailySchedule>
-                <dailySchedule day="Tuesday">
-                    <direction type="normal" departure="07:45" />
-                    <direction type="reverse"  departure="10:45" />
-                </dailySchedule>
-                <dailySchedule day="Wednesday">
-                    <direction type="normal" departure="09:00" />
-                    <direction type="reverse" departure="12:00" />
-                </dailySchedule>
-                <dailySchedule day="Thursday">
-                    <direction type="normal" departure="10:15" />
-                    <direction type="reverse" departure="13:15" />
-                </dailySchedule>
-                <dailySchedule day="Friday">
-                    <direction type="normal" departure="11:30" />
-                    <direction type="reverse" departure="14:30" />
-                </dailySchedule>
-                <dailySchedule day="Saturday">
-                    <direction type="normal" departure="12:45" />
-                    <direction type="reverse" departure="15:45" />
-                </dailySchedule>
-                <dailySchedule day="Sunday">
-                    <direction type="normal" departure="14:00" />
-                    <direction type="reverse" departure="17:00" />
-                </dailySchedule>
-            </schedule>
-        </train>
-
-        <train id="7">
-            <road id="7"/>
-            <schedule>
-                <dailySchedule day="Monday">
-                    <direction type="normal" departure="07:00" />
-                    <direction type="reverse" departure="10:00" />
-                </dailySchedule>
-                <dailySchedule day="Tuesday">
-                    <direction type="normal" departure="08:15" />
-                    <direction type="reverse" departure="11:15" />
-                </dailySchedule>
-                <dailySchedule day="Wednesday">
-                    <direction type="normal" departure="09:30" />
-                    <direction type="reverse" departure="12:30" />
-                </dailySchedule>
-                <dailySchedule day="Thursday">
-                    <direction type="normal"  departure="10:45" />
-                    <direction type="reverse" departure="13:45" />
-                </dailySchedule>
-                <dailySchedule day="Friday">
-                    <direction type="normal" departure="12:00" />
-                    <direction type="reverse" departure="15:00" />
-                </dailySchedule>
-                <dailySchedule day="Saturday">
-                    <direction type="normal" departure="13:15" />
-                    <direction type="reverse" departure="16:15" />
-                </dailySchedule>
-                <dailySchedule day="Sunday">
-                    <direction type="normal" departure="14:30" />
-                    <direction type="reverse" departure="17:30" />
-                </dailySchedule>
-            </schedule>
-        </train>
-
-        <train id="8">
-            <road id="8"/>
-            <schedule>
-                <dailySchedule day="Monday">
-                    <direction type="normal" departure="08:00" />
-                    <direction type="reverse" departure="11:00" />
-                </dailySchedule>
-                <dailySchedule day="Tuesday">
-                    <direction type="normal" departure="09:15" />
-                    <direction type="reverse" departure="12:15" />
-                </dailySchedule>
-                <dailySchedule day="Wednesday">
-                    <direction type="normal" departure="10:30" />
-                    <direction type="reverse" departure="13:30" />
-                </dailySchedule>
-                <dailySchedule day="Thursday">
-                    <direction type="normal" departure="11:45" />
-                    <direction type="reverse" departure="14:45" />
-                </dailySchedule>
-                <dailySchedule day="Friday">
-                    <direction type="normal" departure="13:00" />
-                    <direction type="reverse" departure="16:00" />
-                </dailySchedule>
-                <dailySchedule day="Saturday">
-                    <direction type="normal" departure="14:15" />
-                    <direction type="reverse" departure="17:15" />
-                </dailySchedule>
-                <dailySchedule day="Sunday">
-                    <direction type="normal" departure="15:30" />
-                    <direction type="reverse" departure="18:30" />
-                </dailySchedule>
-            </schedule>
-        </train>
-
-        <train id="9">
-            <road id="9"/>
-            <schedule>
-                <dailySchedule day="Monday">
-                    <direction type="normal" departure="09:00" />
-                    <direction type="reverse" departure="12:00" />
-                </dailySchedule>
-                <dailySchedule day="Tuesday">
-                    <direction type="normal" departure="10:15" />
-                    <direction type="reverse" departure="13:15" />
-                </dailySchedule>
-                <dailySchedule day="Wednesday">
-                    <direction type="normal" departure="11:30" />
-                    <direction type="reverse" departure="14:30" />
-                </dailySchedule>
-                <dailySchedule day="Thursday">
-                    <direction type="normal" departure="12:45" />
-                    <direction type="reverse" departure="15:45" />
-                </dailySchedule>
-                <dailySchedule day="Friday">
-                    <direction type="normal" departure="14:00" />
-                    <direction type="reverse" departure="18:00" />
-                </dailySchedule>
-                <dailySchedule day="Saturday">
-                    <direction type="normal" departure="15:15" />
-                    <direction type="reverse" departure="19:15" />
-                </dailySchedule>
-                <dailySchedule day="Sunday">
-                    <direction type="normal" departure="16:30" />
-                    <direction type="reverse" departure="20:30" />
-                </dailySchedule>
-            </schedule>
-        </train>
-
-        <train id="10">
-        <road id="10"/>
-            <schedule>
-                <dailySchedule day="Monday">
-                    <direction type="normal" departure="10:00" />
-                    <direction type="reverse" departure="13:00" />
-                </dailySchedule>
-                <dailySchedule day="Tuesday">
-                    <direction type="normal" departure="11:15" />
-                    <direction type="reverse" departure="14:15" />
-                </dailySchedule>
-                <dailySchedule day="Wednesday">
-                    <direction type="normal" departure="12:30" />
-                    <direction type="reverse" departure="15:30" />
-                </dailySchedule>
-                <dailySchedule day="Thursday">
-                    <direction type="normal" departure="13:45" />
-                    <direction type="reverse" departure="16:45" />
-                </dailySchedule>
-                <dailySchedule day="Friday">
-                    <direction type="normal"  departure="15:00" />
-                    <direction type="reverse" departure="18:00" />
-                </dailySchedule>
-                <dailySchedule day="Saturday">
-                    <direction type="normal" departure="16:15" />
-                    <direction type="reverse" departure="19:15" />
-                </dailySchedule>
-                <dailySchedule day="Sunday">
-                    <direction type="normal" departure="17:30" />
-                    <direction type="reverse" departure="20:30" />
-                </dailySchedule>
-            </schedule>
-        </train>
-
-    </trains>
+        </schedule>
+    </train>
+    <train id="3">
+        <road id="3" />
+        <schedule>
+            <dailySchedule day="Monday">
+                <direction type="reverse" departure="05:00" />
+                <direction type="normal" departure="02:00" />
+                <direction type="normal" departure="08:00" />
+                <direction type="reverse" departure="11:00" />
+            </dailySchedule>
+            <dailySchedule day="Tuesday">
+                <direction type="normal" departure="03:10" />
+                <direction type="reverse" departure="06:10" />
+                <direction type="reverse" departure="09:10" />
+                <direction type="normal" departure="12:10" />
+            </dailySchedule>
+            <dailySchedule day="Wednesday">
+                <direction type="reverse" departure="07:20" />
+                <direction type="normal" departure="04:20" />
+                <direction type="reverse" departure="10:20" />
+                <direction type="normal" departure="13:20" />
+            </dailySchedule>
+            <dailySchedule day="Thursday">
+                <direction type="normal" departure="05:30" />
+                <direction type="reverse" departure="08:30" />
+                <direction type="normal" departure="11:30" />
+                <direction type="reverse" departure="14:30" />
+            </dailySchedule>
+            <dailySchedule day="Friday">
+                <direction type="reverse" departure="09:40" />
+                <direction type="normal" departure="06:40" />
+                <direction type="reverse" departure="12:40" />
+                <direction type="normal" departure="15:40" />
+            </dailySchedule>
+            <dailySchedule day="Saturday">
+                <direction type="normal" departure="07:50" />
+                <direction type="reverse" departure="10:50" />
+                <direction type="normal" departure="13:50" />
+                <direction type="reverse" departure="16:50" />
+            </dailySchedule>
+            <dailySchedule day="Sunday">
+                <direction type="reverse" departure="12:00" />
+                <direction type="normal" departure="09:00" />
+                <direction type="normal" departure="15:00" />
+                <direction type="reverse" departure="18:00" />
+            </dailySchedule>
+        </schedule>
+    </train>
+    <train id="4">
+        <road id="4" />
+        <schedule>
+            <dailySchedule day="Monday">
+                <direction type="reverse" departure="06:00" />
+                <direction type="normal" departure="03:00" />
+                <direction type="normal" departure="09:00" />
+                <direction type="reverse" departure="12:00" />
+            </dailySchedule>
+            <dailySchedule day="Tuesday">
+                <direction type="normal" departure="04:10" />
+                <direction type="reverse" departure="07:10" />
+                <direction type="reverse" departure="10:10" />
+                <direction type="normal" departure="13:10" />
+            </dailySchedule>
+            <dailySchedule day="Wednesday">
+                <direction type="reverse" departure="08:20" />
+                <direction type="normal" departure="05:20" />
+                <direction type="normal" departure="11:20" />
+                <direction type="reverse" departure="14:20" />
+            </dailySchedule>
+            <dailySchedule day="Thursday">
+                <direction type="normal" departure="06:30" />
+                <direction type="reverse" departure="09:30" />
+                <direction type="normal" departure="12:30" />
+                <direction type="reverse" departure="15:30" />
+            </dailySchedule>
+            <dailySchedule day="Friday">
+                <direction type="reverse" departure="10:40" />
+                <direction type="normal" departure="07:40" />
+                <direction type="reverse" departure="13:40" />
+                <direction type="normal" departure="16:40" />
+            </dailySchedule>
+            <dailySchedule day="Saturday">
+                <direction type="normal" departure="08:50" />
+                <direction type="reverse" departure="11:50" />
+                <direction type="normal" departure="14:50" />
+                <direction type="reverse" departure="17:50" />
+            </dailySchedule>
+            <dailySchedule day="Sunday">
+                <direction type="reverse" departure="13:00" />
+                <direction type="normal" departure="10:00" />
+                <direction type="reverse" departure="16:00" />
+                <direction type="normal" departure="19:00" />
+            </dailySchedule>
+        </schedule>
+    </train>
+    <train id="5">
+        <road id="5" />
+        <schedule>
+            <dailySchedule day="Monday">
+                <direction type="normal" departure="06:00" />
+                <direction type="reverse" departure="09:00" />
+                <direction type="reverse" departure="12:00" />
+                <direction type="normal" departure="15:00" />
+            </dailySchedule>
+            <dailySchedule day="Tuesday">
+                <direction type="reverse" departure="10:15" />
+                <direction type="normal" departure="07:15" />
+                <direction type="normal" departure="13:15" />
+                <direction type="reverse" departure="16:15" />
+            </dailySchedule>
+            <dailySchedule day="Wednesday">
+                <direction type="normal" departure="08:30" />
+                <direction type="reverse" departure="11:30" />
+                <direction type="reverse" departure="14:30" />
+                <direction type="normal" departure="17:30" />
+            </dailySchedule>
+            <dailySchedule day="Thursday">
+                <direction type="reverse" departure="12:45" />
+                <direction type="normal" departure="09:45" />
+                <direction type="reverse" departure="15:45" />
+                <direction type="normal" departure="18:45" />
+            </dailySchedule>
+            <dailySchedule day="Friday">
+                <direction type="normal" departure="11:00" />
+                <direction type="reverse" departure="14:00" />
+                <direction type="normal" departure="17:00" />
+                <direction type="reverse" departure="20:00" />
+            </dailySchedule>
+            <dailySchedule day="Saturday">
+                <direction type="reverse" departure="15:15" />
+                <direction type="normal" departure="12:15" />
+                <direction type="reverse" departure="18:15" />
+                <direction type="normal" departure="21:15" />
+            </dailySchedule>
+            <dailySchedule day="Sunday">
+                <direction type="normal" departure="13:30" />
+                <direction type="reverse" departure="16:30" />
+                <direction type="normal" departure="19:30" />
+                <direction type="reverse" departure="22:30" />
+            </dailySchedule>
+        </schedule>
+    </train>
+    <train id="6">
+        <road id="6" />
+        <schedule>
+            <dailySchedule day="Monday">
+                <direction type="reverse" departure="09:30" />
+                <direction type="normal" departure="06:30" />
+            </dailySchedule>
+            <dailySchedule day="Tuesday">
+                <direction type="normal" departure="07:45" />
+                <direction type="reverse" departure="10:45" />
+            </dailySchedule>
+            <dailySchedule day="Wednesday">
+                <direction type="reverse" departure="12:00" />
+                <direction type="normal" departure="09:00" />
+            </dailySchedule>
+            <dailySchedule day="Thursday">
+                <direction type="reverse" departure="13:15" />
+                <direction type="normal" departure="10:15" />
+            </dailySchedule>
+            <dailySchedule day="Friday">
+                <direction type="normal" departure="11:30" />
+                <direction type="reverse" departure="14:30" />
+            </dailySchedule>
+            <dailySchedule day="Saturday">
+                <direction type="reverse" departure="15:45" />
+                <direction type="normal" departure="12:45" />
+            </dailySchedule>
+            <dailySchedule day="Sunday">
+                <direction type="normal" departure="14:00" />
+                <direction type="reverse" departure="17:00" />
+            </dailySchedule>
+        </schedule>
+    </train>
+    <train id="7">
+        <road id="7" />
+        <schedule>
+            <dailySchedule day="Monday">
+                <direction type="normal" departure="07:00" />
+                <direction type="reverse" departure="10:00" />
+            </dailySchedule>
+            <dailySchedule day="Tuesday">
+                <direction type="reverse" departure="11:15" />
+                <direction type="normal" departure="08:15" />
+            </dailySchedule>
+            <dailySchedule day="Wednesday">
+                <direction type="reverse" departure="12:30" />
+                <direction type="normal" departure="09:30" />
+            </dailySchedule>
+            <dailySchedule day="Thursday">
+                <direction type="normal" departure="10:45" />
+                <direction type="reverse" departure="13:45" />
+            </dailySchedule>
+            <dailySchedule day="Friday">
+                <direction type="reverse" departure="15:00" />
+                <direction type="normal" departure="12:00" />
+            </dailySchedule>
+            <dailySchedule day="Saturday">
+                <direction type="normal" departure="13:15" />
+                <direction type="reverse" departure="16:15" />
+            </dailySchedule>
+            <dailySchedule day="Sunday">
+                <direction type="reverse" departure="17:30" />
+                <direction type="normal" departure="14:30" />
+            </dailySchedule>
+        </schedule>
+    </train>
+    <train id="8">
+        <road id="8" />
+        <schedule>
+            <dailySchedule day="Monday">
+                <direction type="normal" departure="08:00" />
+                <direction type="reverse" departure="11:00" />
+            </dailySchedule>
+            <dailySchedule day="Tuesday">
+                <direction type="reverse" departure="12:15" />
+                <direction type="normal" departure="09:15" />
+            </dailySchedule>
+            <dailySchedule day="Wednesday">
+                <direction type="normal" departure="10:30" />
+                <direction type="reverse" departure="13:30" />
+            </dailySchedule>
+            <dailySchedule day="Thursday">
+                <direction type="reverse" departure="14:45" />
+                <direction type="normal" departure="11:45" />
+            </dailySchedule>
+            <dailySchedule day="Friday">
+                <direction type="normal" departure="13:00" />
+                <direction type="reverse" departure="16:00" />
+            </dailySchedule>
+            <dailySchedule day="Saturday">
+                <direction type="reverse" departure="17:15" />
+                <direction type="normal" departure="14:15" />
+            </dailySchedule>
+            <dailySchedule day="Sunday">
+                <direction type="reverse" departure="18:30" />
+                <direction type="normal" departure="15:30" />
+            </dailySchedule>
+        </schedule>
+    </train>
+    <train id="8">
+        <road id="8" />
+        <schedule>
+            <dailySchedule day="Monday">
+                <direction type="normal" departure="08:00" />
+                <direction type="reverse" departure="11:00" />
+            </dailySchedule>
+            <dailySchedule day="Tuesday">
+                <direction type="reverse" departure="12:15" />
+                <direction type="normal" departure="09:15" />
+            </dailySchedule>
+            <dailySchedule day="Wednesday">
+                <direction type="normal" departure="10:30" />
+                <direction type="reverse" departure="13:30" />
+            </dailySchedule>
+            <dailySchedule day="Thursday">
+                <direction type="reverse" departure="14:45" />
+                <direction type="normal" departure="11:45" />
+            </dailySchedule>
+            <dailySchedule day="Friday">
+                <direction type="normal" departure="13:00" />
+                <direction type="reverse" departure="16:00" />
+            </dailySchedule>
+            <dailySchedule day="Saturday">
+                <direction type="reverse" departure="17:15" />
+                <direction type="normal" departure="14:15" />
+            </dailySchedule>
+            <dailySchedule day="Sunday">
+                <direction type="reverse" departure="18:30" />
+                <direction type="normal" departure="15:30" />
+            </dailySchedule>
+        </schedule>
+    </train>
+    <train id="10">
+        <road id="10" />
+        <schedule>
+            <dailySchedule day="Monday">
+                <direction type="normal" departure="10:00" />
+                <direction type="reverse" departure="13:00" />
+            </dailySchedule>
+            <dailySchedule day="Tuesday">
+                <direction type="reverse" departure="14:15" />
+                <direction type="normal" departure="11:15" />
+            </dailySchedule>
+            <dailySchedule day="Wednesday">
+                <direction type="reverse" departure="15:30" />
+                <direction type="normal" departure="12:30" />
+            </dailySchedule>
+            <dailySchedule day="Thursday">
+                <direction type="normal" departure="13:45" />
+                <direction type="reverse" departure="16:45" />
+            </dailySchedule>
+            <dailySchedule day="Friday">
+                <direction type="reverse" departure="18:00" />
+                <direction type="normal" departure="15:00" />
+            </dailySchedule>
+            <dailySchedule day="Saturday">
+                <direction type="normal" departure="16:15" />
+                <direction type="reverse" departure="19:15" />
+            </dailySchedule>
+            <dailySchedule day="Sunday">
+                <direction type="normal" departure="17:30" />
+                <direction type="reverse" departure="20:30" />
+            </dailySchedule>
+        </schedule>
+    </train>
+</trains>
 </transportSchedule>

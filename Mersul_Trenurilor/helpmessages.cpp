@@ -37,5 +37,8 @@ You can add an alarm only if you have an account created in the application and 
     }, 
     {
         "help", "Prints informations about the application functionalities"
+    }, 
+    {
+        "set-location <station-id>", "Activates location. Location will be <station-id>"
     }
 };

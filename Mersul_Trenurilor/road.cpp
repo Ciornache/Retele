@@ -1,11 +1,11 @@
 #include "road.h"
 
-void Road::setNextRoad(Road * road)
+void Road::setNextRoad(std::shared_ptr<Road> road)
 {
     this->nextRoad = road; 
 }
 
-void Road::copyRoad(Road * road)
+void Road::copyRoad(std::shared_ptr<Road> road)
 {
     this->road_id = road->road_id;
     this->delay = road->delay;
@@ -15,9 +15,10 @@ void Road::copyRoad(Road * road)
     this->last_delay = road->last_delay;
 } 
 
-Road * Road::clone()
+std::shared_ptr<Road> Road::clone()
 {
-    Road * root = new Road, *curr = this, *prevNode = NULL, *copyRoot;
+    std::shared_ptr<Road> root = std::make_shared<Road>(), prevNode = nullptr, copyRoot;
+    std::shared_ptr<Road> curr = shared_from_this();
     copyRoot = root;
     while(curr != NULL)
     {
@@ -25,7 +26,7 @@ Road * Road::clone()
         if(prevNode != NULL) prevNode->nextRoad = root;
         root->prevRoad = prevNode; root->nextRoad = NULL;
         if(curr->nextRoad != NULL)
-             root->nextRoad = new Road;
+             root->nextRoad = std::make_shared<Road>();
         prevNode = root;
         root = root->nextRoad;
         curr = curr->nextRoad;

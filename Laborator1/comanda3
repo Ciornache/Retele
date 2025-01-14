@@ -1,0 +1,1 @@
+stat erori.txt | cut -d ' ' -f2-3 | grep -E Inode | cut -d ' ' -f2

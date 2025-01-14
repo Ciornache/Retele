@@ -61,7 +61,7 @@ int sfd, port;
 char message[BUFFER_SIZE], response[BUFFER_SIZE];
 std::string command;
 
-int main(int arg, char **argv)
+int main(int arg, char * argv[])
 {
     struct sockaddr_in  server;
 

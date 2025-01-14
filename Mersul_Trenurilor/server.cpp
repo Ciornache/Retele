@@ -21,10 +21,12 @@
 
 using namespace tinyxml2;
 
-
+#define MIN_ALARM_TIME 0
+#define MAX_ALARM_TIME 60
 #define PORT_NUMBER 1311
 #define BUFFER_SIZE 1000
-#define MAX_SCHEDULE_SIZE 11900
+#define MAX_SCHEDULE_SIZE 30000
+#define XML_PATH "/home/ciornei/Mersul_Trenurilor/schedule.xml"
 
 #define NUMBER_OF_CONCURRENT_CLIENTS 5
 
@@ -38,44 +40,56 @@ bool isNotifyOn = false;
 char msg[BUFFER_SIZE];
 char response[BUFFER_SIZE];
 
-std::mutex m;
-std::mutex del_command;
-std::mutex delay_on;
+std::mutex m, delay_on, del_command;
 std::vector<std::thread> threads;
-std::vector<Road*> roads;
+std::vector<std::shared_ptr<Road>> roads;
 std::vector<Train*> trains;
 std::map<int, bool> isThreadActive;
+std::map<std::string, std::string> scheduleCache;
 std::condition_variable cv;
+
+
+void handleError(std::string message, int exit_code);
+void handleClient(int client);
+
+/// Validate Command \\\
+
+std::pair<bool, std::vector<std::string>> validateCommand(std::string command, std::string header);
+
+void notifyClient(int client, int client_id, std::string header);
+
+/// Find By Id Functions \\\
+
+std::shared_ptr<Road> findRoadById(int road_id);
+Train* findTrainById(int train_id);
+
+/// Time and Delay update \\\
 
 void update_timestamp();
 void updateTrainDelay();
-void handleError(std::string message, int exit_code);
-Road * findRoadById(int road_id);
+
+/// Fetch Data from XML  \\\ 
+
 void fetchRoad(XMLElement * element);
 void fetchTrainData(XMLElement * train);
 void fetchData(std::string path, std::string header);
-void handleClient(int client);
-std::pair<bool, std::vector<std::string>> validateCommand(std::string command, std::string header);
-Train* findTrainById(int train_id);
+
+/// Command Handlers \\\
+
+void handleCommand(std::string command, std::string header, std::vector<std::string> args, int client);
 std::string handle_delay(std::string header, std::vector<std::string> args);
 std::string handle_getSchedule(std::string header, std::vector<std::string> args);
-std::string handle_nextHourArrivals();
-std::string handle_nextHourDepartures();
+std::string handle_nextHourArrivals(int client_id);
+std::string handle_nextHourDepartures(int client_id);
 std::string handle_addAlarm(int train_id, int client_id);
 std::string handle_login(std::string name, std::string password);
 std::string handle_register(std::string name, std::string password, int user_id);
 std::string handle_help();
 std::string handle_quit(int client_id);
 std::string handle_disableAlarm(int train_id, int client_id);
+std::string handle_setLocation(int station_id, int client_id);
 
-
-void handleCommand(std::string command, std::string header, std::vector<std::string> args, int client);
-void createTableUsers(std::string header);
-void createTableNotifications(std::string header);
-void createTableClients(std::string header);
-void notifyClient(int client, int client_id, std::string header);
-
-bool insert_user(std::string name, std::string password);
+/// Delete client files : ls | grep -e "Client-" | xargs rm
 
 int main() 
 {
@@ -99,21 +113,16 @@ int main()
     if (listen(sfd, NUMBER_OF_CONCURRENT_CLIENTS) == -1) 
         handleError(header + "Error at setting the listening maximum to " + std::to_string(NUMBER_OF_CONCURRENT_CLIENTS), 4);
 
-    std::cout << header << "Waiting at port " << PORT_NUMBER << '\n';
     std::cout << header << "Fetching train data..." << '\n';
 
-    fetchData("/home/ciornei/Mersul_Trenurilor/schedule.xml", header);
+    fetchData(XML_PATH, header);
     std::cout << header << "Fetched data!\n";
     std::cout << header << "Initializing database...\n";
 
-    Database database("users.db");
-    createTableUsers(header);
-    database.clearTable("notifications");
-    createTableNotifications(header);
-    database.clearTable("clients");
-    createTableClients(header);
+    Database::initDatabase(header);
 
     std::cout << header << "Initialized database!\n";
+    std::cout << header << "Waiting at port " << PORT_NUMBER << '\n';
 
     threads.push_back(std::thread(update_timestamp));
 
@@ -135,6 +144,11 @@ int main()
             thread.join();
 
     close(sfd);
+
+    for(unsigned int j = 0;j < trains.size(); j++)
+        delete trains[j];
+    trains.clear();
+
     return 0;
 }
 
@@ -161,15 +175,22 @@ void updateTrainDelay()
     {
         /// Calculez delay-ul maxim care a fost submitted la momentul de timp time
 
-        int max_delay = 0;
-        for(auto delay : train->delays[globalTime.to_string()])
-            max_delay = std::max(max_delay, delay);
-
+        int max_delay = 0, pos_delay = 0, neg_delay = 0;
+        for(auto delay : train->delays[globalTime.to_string()]) 
+        {
+            if(delay > 0)
+                pos_delay = std::max(pos_delay, delay);
+            else 
+            {
+                if(!neg_delay) neg_delay = delay;
+                else neg_delay = std::min(neg_delay, delay);
+            }
+        }
+        max_delay = pos_delay + neg_delay;
         bool delay_add = false;
         int lastRouteDelay = 0, prevTotalTime = 0;
         TimeStamp startTime;
         ScheduleElement * lastRoute = NULL;
-
         for(unsigned int idx = 0;idx < train->schedule[day_id].size(); idx++)
         {
             ScheduleElement route = train->schedule[day_id][idx];
@@ -180,8 +201,7 @@ void updateTrainDelay()
             startTime = route.startTime;
             int total_time = 0;
             TimeStamp prevStartTime;
-            Road * road = route.road;
-
+            std::shared_ptr<Road> road = route.road;
             if(route.isReversed)
             {
                 while(road->nextRoad != NULL)
@@ -194,6 +214,8 @@ void updateTrainDelay()
             {
                 if(road->last_delay > 0)
                     road->last_delay--;
+                else if(road->last_delay < 0)
+                    road->last_delay++;
                 if(!route.isReversed)
                      road = road->nextRoad;
                 else 
@@ -218,11 +240,33 @@ void updateTrainDelay()
                 
                 if(startTime + total_time + road->delay > globalTime) 
                 {                        
-                    if(road->last_delay < max_delay)
+                    int remTimeUnits = (startTime + total_time + road->delay) - globalTime;
+                    if(max_delay < 0 && -max_delay > remTimeUnits)
+                        max_delay = -remTimeUnits;
+                    
+                    bool isDelayChanged = false;
+                    int new_delay = 0;
+                    if(road->last_delay <= 0 && max_delay > 0 || road->last_delay >= 0 && max_delay < 0)
+                        new_delay = max_delay, road->last_delay += max_delay, road->delay += max_delay, isDelayChanged = true;
+                    else 
                     {
-                        int new_delay = max_delay - road->last_delay;
-                        road->last_delay += new_delay; road->delay += new_delay;
-                        Road * cpRoad = NULL;
+                        if(road->last_delay >= 0 && max_delay > road->last_delay)
+                        {
+                            new_delay = max_delay - road->last_delay;
+                            road->last_delay += new_delay; road->delay += new_delay;
+                            isDelayChanged = true;
+                        }
+                        else if(road->last_delay <= 0 && -max_delay > -road->last_delay)
+                        {
+                            new_delay = max_delay - road->last_delay;
+                            road->last_delay += new_delay; road->delay += new_delay;
+                            isDelayChanged = true;
+                        }
+                    }
+                    
+                    if(isDelayChanged) 
+                    {
+                        std::shared_ptr<Road> cpRoad = nullptr;
                         if(!route.isReversed)
                             cpRoad = road->nextRoad;
                         else 
@@ -236,7 +280,6 @@ void updateTrainDelay()
                             else 
                                  cpRoad = cpRoad->prevRoad;
                         }
-                        
                         delay_add = true;
                     }
                     ok = true;
@@ -258,7 +301,7 @@ void updateTrainDelay()
             {
                 int dif = (startTime + prevTotalTime + lastRouteDelay) - lastRoute->startTime;
                 lastRoute->startTime = startTime + prevTotalTime + lastRouteDelay;
-                Road * road = lastRoute->road;
+                std::shared_ptr<Road> road = lastRoute->road;
                 while(road != NULL)
                 {
                     road->delay += dif;
@@ -279,7 +322,7 @@ void handleError(std::string message, int exit_code)
     exit(exit_code);
 }
 
-Road * findRoadById(int road_id)
+std::shared_ptr<Road> findRoadById(int road_id)
 {
     for(unsigned int i = 0;i < roads.size(); i++)
         if(roads[i]->road_id == road_id)
@@ -290,21 +333,23 @@ Road * findRoadById(int road_id)
 void fetchRoad(XMLElement * element)
 {
     std::string road_id = element->Attribute("id");
-    Road * road, *prevRoad = NULL, *roadRoot = NULL;
+    std::shared_ptr<Road> road;
+    std::shared_ptr<Road> prevRoad = nullptr;
+    std::shared_ptr<Road> roadRoot = nullptr;
     XMLElement * segment = element->FirstChildElement();
     while(segment != NULL)
     {
         std::string to_station = segment->Attribute("to_station");
         std::string from_station = segment->Attribute("from_station");
         std::string time = segment->Attribute("time");
-        road = new Road(std::stoi(road_id), 0, std::stoi(time), std::stoi(from_station), std::stoi(to_station));
-        if(roadRoot == NULL) roadRoot = road;
-        if(prevRoad != NULL)
+        road = std::make_shared<Road>(std::stoi(road_id), 0, std::stoi(time), std::stoi(from_station), std::stoi(to_station));
+        if(roadRoot == nullptr) roadRoot = road;
+        if(prevRoad != nullptr)
             prevRoad->nextRoad = road, road->prevRoad = prevRoad;
         prevRoad = road;
         segment = segment->NextSiblingElement();
     }
-    road->nextRoad = NULL; roadRoot->prevRoad = NULL;
+    road->nextRoad = nullptr; roadRoot->prevRoad = nullptr;
     roads.push_back(roadRoot);
 }
 
@@ -404,7 +449,6 @@ void handleClient(int client)
         {
             std::cout << header << "Received " << request << " from client!\n";
             std::string command(request);
-
             std::pair<bool, std::vector<std::string>> valid = validateCommand(command, header);
             if(!valid.first) 
             {
@@ -446,7 +490,6 @@ void notifyClient(int client, int client_id, std::string header)
     int day_id = globalTime.getDayIndex();
     std::string schedule;
     schedule += "Notification:\n";
-
     for(auto train_id : notifiableTrains)
     {
         for(auto train : trains)
@@ -455,7 +498,7 @@ void notifyClient(int client, int client_id, std::string header)
             {
                 for(auto route : train->schedule[day_id])
                 {
-                    Road * road = route.road;
+                    std::shared_ptr<Road> road = route.road;
                     TimeStamp startTime = route.startTime;
                     int total_time = 0;
                     while(road != NULL)
@@ -466,9 +509,11 @@ void notifyClient(int client, int client_id, std::string header)
                         {
                             schedule += "Train " + std::to_string(train_id) + " arrives in station " + std::to_string(road->to_station) + " in " + std::to_string(dif) + " minutes. "; 
                             if(road->delay > 0)
-                                schedule += "Delay of " + std::to_string(road->delay) + " minutes\n";
+                                schedule += "Train is delayed by " + std::to_string(road->delay) +  " minutes\n";
+                            else if(road->delay < 0)
+                                schedule += "Train arrives earlier by " + std::to_string(-road->delay) + " minutes\n";
                             else 
-                                schedule += "\n";
+                                schedule += "All according to the plan. No delays\n";
                         }
                         if(dif > 0)
                             break;
@@ -481,7 +526,6 @@ void notifyClient(int client, int client_id, std::string header)
     }
     if(schedule.size() > 14) 
     {
-        // std::cout << header << schedule << '\n';
         char response[MAX_SCHEDULE_SIZE];
         memset(response, false, sizeof(response));
         strcpy(response, schedule.c_str());
@@ -561,9 +605,13 @@ std::pair<bool, std::vector<std::string>> validateCommand(std::string command, s
         if(args.size() != 2)
             std::cout << header << "Comamnd " + commandName + " syntax: disable-alarm <train_id>\n", answer.first = false;
     }
+    else if(commandName == "set-location")
+    {
+        if(args.size() != 2)
+            std::cout << header << "Command " + commandName + " syntax: set-station <station_id>\n", answer.first = false;
+    }
     else 
         answer.first = false;
-    
     answer.second = args;
     return answer;
 }
@@ -604,8 +652,20 @@ std::string handle_getSchedule(std::string header, std::vector<std::string> args
         }
     }
 
-    bool isRoadWritten = false, isTrainValid = false, isDayValid = true;
+    std::string scheduleHash = "Schedule ";
+    if(train_id != -1)
+        scheduleHash += std::to_string(train_id) + " ";
+    if(!day.empty())
+        scheduleHash += day + " ";
+    
+    if(scheduleCache.find(scheduleHash) != scheduleCache.end())
+    {
+        std::string schedule = scheduleCache.find(scheduleHash)->second;
+        std::cout << header << "Used cached!\n";
+        return schedule;
+    }
 
+    bool isRoadWritten = false, isTrainValid = false, isDayValid = true;
     std::string schedule;
     schedule += "Current Time " + globalTime.to_string() + "\n";
     for(auto train : trains)
@@ -631,7 +691,7 @@ std::string handle_getSchedule(std::string header, std::vector<std::string> args
                 schedule += days[first_day] + "\n";
             for(auto route : train->schedule[first_day])
             {
-                Road * road = route.road;
+                std::shared_ptr<Road> road = route.road;
                 TimeStamp startTime = route.startTime;
                 int total_time = 0;
                 int from_station = road->from_station, to_station;
@@ -668,12 +728,15 @@ std::string handle_getSchedule(std::string header, std::vector<std::string> args
         if(!isDayValid && days.size() != 0) 
             return std::string("Error: Invalid day ") + day + "\n";
     }
-
+    scheduleCache[scheduleHash] = schedule;
     return schedule;
 }
 
-std::string handle_nextHourArrivals()
+std::string handle_nextHourArrivals(int client_id)
 {
+    Database database("users.db");
+    int location = database.getLocation(client_id);
+
     std::string schedule;
     int day_id = globalTime.getDayIndex();
     schedule += "Current Time " + globalTime.to_string() + "\n";
@@ -681,7 +744,7 @@ std::string handle_nextHourArrivals()
     {
         for(auto route : train->schedule[day_id])
         {
-             Road * road = route.road;
+             std::shared_ptr<Road> road = route.road;
              int total_time = 0;
              TimeStamp startTime = route.startTime;
 
@@ -695,17 +758,28 @@ std::string handle_nextHourArrivals()
              {
                 total_time += road->time;                
                 int minutes = (startTime + total_time + road->delay) - globalTime;
-                if(minutes >= 0 && minutes <= 60)
+                if(minutes >= MIN_ALARM_TIME && minutes <= MAX_ALARM_TIME)
                 {   
-                    if(!route.isReversed)
-                        schedule += "Train " + std::to_string(train->train_id) + " arrives in station " + std::to_string(road->to_station) + " in " + std::to_string(minutes) + " minutes. ";
-                    else 
-                        schedule += "Train " + std::to_string(train->train_id) + " arrives in station " + std::to_string(road->from_station) + " in " + std::to_string(minutes) + " minutes. ";
+                    bool isInfoValid = true;
+                    if(location > 0)
+                    {
+                        if(!route.isReversed && road->to_station != location || route.isReversed && road->from_station != location)
+                            isInfoValid = false;
+                    }
+                    if(isInfoValid) 
+                    {
+                        if(!route.isReversed)
+                            schedule += "Train " + std::to_string(train->train_id) + " arrives in station " + std::to_string(road->to_station) + " in " + std::to_string(minutes) + " minutes. ";
+                        else 
+                            schedule += "Train " + std::to_string(train->train_id) + " arrives in station " + std::to_string(road->from_station) + " in " + std::to_string(minutes) + " minutes. ";
 
-                    if(road->delay == 0)
-                        schedule += "All according to the plan. No delays\n";
-                    else if(road->delay > 0)
-                        schedule += "Delay: " + std::to_string(road->delay) + "\n";
+                        if(road->delay == 0)
+                            schedule += "All according to the plan. No delays\n";
+                        else if(road->delay > 0)
+                            schedule += "Train is delayed by " + std::to_string(road->delay) +  " minutes\n";
+                        else if(road->delay < 0)
+                            schedule += "Train arrives earlier by " + std::to_string(-road->delay) + " minutes\n";
+                    }
                 }
                 if(!route.isReversed)
                     road = road->nextRoad;
@@ -716,8 +790,10 @@ std::string handle_nextHourArrivals()
     return schedule;
 }
 
-std::string handle_nextHourDepartures()
+std::string handle_nextHourDepartures(int client_id)
 {
+    Database database("users.db");
+    int location = database.getLocation(client_id);
     std::string schedule;
     int day_id = globalTime.getDayIndex();
     schedule += "Current Time " + globalTime.to_string() + "\n";
@@ -725,7 +801,7 @@ std::string handle_nextHourDepartures()
     {
         for(auto route : train->schedule[day_id])
         {
-             Road * road = route.road;
+             std::shared_ptr<Road> road = route.road;
              int total_time = 0;
              TimeStamp startTime = route.startTime;
 
@@ -738,16 +814,27 @@ std::string handle_nextHourDepartures()
              while(road != NULL)
              {
                 int minutes = (startTime + total_time + road->delay) - globalTime;
-                if(minutes >= 0 && minutes <= 60)
+                if(minutes >= MIN_ALARM_TIME && minutes <= MAX_ALARM_TIME)
                 {   
-                    if(!route.isReversed)             
-                       schedule += "Train " + std::to_string(train->train_id) + " leaves station " + std::to_string(road->from_station) + " in " + std::to_string(minutes) + " minutes. ";
-                    else
-                       schedule += "Train " + std::to_string(train->train_id) + " leaves station " + std::to_string(road->from_station) + " in " + std::to_string(minutes) + " minutes. ";
-                    if(road->delay == 0)
-                        schedule += "All according to the plan. No delays\n";
-                    else if(road->delay > 0)
-                        schedule += "Delay: " + std::to_string(road->delay) + "\n";
+                    bool isInfoValid = true;
+                    if(location > 0)
+                    {
+                        if(!route.isReversed && road->from_station != location || route.isReversed && road->to_station != location)
+                            isInfoValid = false;
+                    }
+                    if(isInfoValid) 
+                    {
+                        if(!route.isReversed)             
+                            schedule += "Train " + std::to_string(train->train_id) + " leaves station " + std::to_string(road->from_station) + " in " + std::to_string(minutes) + " minutes. ";
+                        else
+                            schedule += "Train " + std::to_string(train->train_id) + " leaves station " + std::to_string(road->from_station) + " in " + std::to_string(minutes) + " minutes. ";
+                        if(road->delay == 0)
+                            schedule += "All according to the plan. No delays\n";
+                        else if(road->delay > 0)
+                            schedule += "Train is delayed by " + std::to_string(road->delay) +  " minutes\n";
+                        else if(road->delay < 0)
+                            schedule += "Train departs earlier by " + std::to_string(-road->delay) + " minutes!\n";
+                    }
                 }
                 total_time += road->time;                
                 if(!route.isReversed)
@@ -850,6 +937,19 @@ std::string handle_disableAlarm(int train_id, int client_id)
     }
 }
 
+std::string handle_setLocation(int station_id, int client_id)
+{
+    Database database("users.db");
+    std::pair<bool, bool> response = database.isUserLoggedIn(client_id);
+    if(!response.second)
+        return "Error: Login to activate location!\n";
+    else 
+    { 
+        database.setLocation(station_id, client_id);
+        return "Set location to " + std::to_string(station_id) + "\n";
+    }
+}
+
 void handleCommand(std::string command, std::string header, std::vector<std::string> args, int client) 
 {
     std::stringstream ss;
@@ -860,9 +960,9 @@ void handleCommand(std::string command, std::string header, std::vector<std::str
     else if(command_name == "get-schedule")
         res = handle_getSchedule(header, args);
     else if(command_name == "next-hour-arrivals")
-        res = handle_nextHourArrivals();
+        res = handle_nextHourArrivals(std::stoi(args[0]));
     else if(command_name == "next-hour-departures")
-        res = handle_nextHourDepartures();
+        res = handle_nextHourDepartures(std::stoi(args[0]));
     else if(command_name == "register")
         res = handle_register(args[0], args[1], std::stoi(args[2]));
     else if(command_name == "login")
@@ -882,7 +982,8 @@ void handleCommand(std::string command, std::string header, std::vector<std::str
         res = handle_quit(std::stoi(args[0]));
     else if(command_name == "disable-alarm")
         res = handle_disableAlarm(std::stoi(args[0]), std::stoi(args[1]));
-
+    else if(command_name == "set-location")
+        res = handle_setLocation(std::stoi(args[0]), std::stoi(args[1]));
     char response[MAX_SCHEDULE_SIZE];
     memset(response, false, sizeof(response));
     strcpy(response, res.c_str());
@@ -891,51 +992,4 @@ void handleCommand(std::string command, std::string header, std::vector<std::str
         std::cout << header << "Can't send to client the response to command " << command_name << '\n';
         return;
     }
-}
-
-void createTableUsers(std::string header)
-{
-    Database database("users.db");
-    std::string sql = R"(
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            password TEXT NOT NULL
-        );
-    )";
-    int ok = database.createTable(sql);
-    if(ok != 0)
-        std::cout << header << "Error: Not able to create table users!\n";
-}
-
-void createTableNotifications(std::string header)
-{
-    Database database("users.db");
-    std::string sql = R"(
-        CREATE TABLE IF NOT EXISTS notifications (
-            notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            client_id INTEGER NOT NULL,
-            train_id INTEGER NOT NULL
-        );
-    )";
-
-    int ok = database.createTable(sql);
-    if(ok != 0)
-        std::cout << header << "Error: Not able to create table notifications!\n";
-}
-
-void createTableClients(std::string header)
-{
-    Database database("users.db");
-
-    std::string sql = R"(
-        CREATE TABLE IF NOT EXISTS clients (
-            client_id INTEGER PRIMARY KEY,
-            logged INTEGER NOT NULL
-        );
-    )";
-
-    int ok = database.createTable(sql);
-    if(ok != 0)
-        std::cout << header << "Error: Not able to create table logged!\n";
 }

@@ -1,8 +1,8 @@
 #include "database.h"
 
-Database::Database(std::string table_name)
+Database::Database(std::string db_name)
 {
-    int rc = sqlite3_open(table_name.c_str(), &this->conn);
+    int rc = sqlite3_open(db_name.c_str(), &this->conn);
     if(rc) 
         this->conn = NULL;
 }
@@ -66,7 +66,7 @@ bool Database::insertUser(std::string name, std::string password, int user_id)
 
 bool Database::insertClient(int client_id, int logged)
 {
-    std::string sql_statement = "INSERT INTO clients(client_id, logged) VALUES(?, ?)";
+    std::string sql_statement = "INSERT INTO clients(client_id, logged, station_id) VALUES(?, ?, ?)";
     sqlite3_stmt * stmt;
     int err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
     if(err != SQLITE_OK) 
@@ -74,6 +74,7 @@ bool Database::insertClient(int client_id, int logged)
 
     sqlite3_bind_int(stmt, 1, client_id);
     sqlite3_bind_int(stmt, 2, logged);
+    sqlite3_bind_int(stmt, 3, 0);
 
     if(sqlite3_step(stmt) != SQLITE_DONE)
     {
@@ -88,7 +89,7 @@ bool Database::insertClient(int client_id, int logged)
 bool Database::insertNotification(int train_id, int client_id)
 {
     std::cout << "Inserting notification for train " << train_id << " in the " << client_id << " account!\n";
-    std::string sql_statement = "INSERT INTO notifications(client_id, train_id) VALUES(?, ?)";
+    std::string sql_statement = "INSERT INTO alarms(client_id, train_id) VALUES(?, ?)";
     sqlite3_stmt * stmt;
     int err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
     if(err != SQLITE_OK) 
@@ -158,13 +159,13 @@ bool Database::clearTable(std::string table_name)
     std::string sql_statement = "DELETE FROM " + table_name + ";";
     sqlite3_stmt * stmt;
     int err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
-    if(err != 0)
+    if(err != SQLITE_OK)
     {
         sqlite3_finalize(stmt);
         return false;
     }
     err = sqlite3_step(stmt);
-    if(err != 0)
+    if(err != SQLITE_DONE)
     {
         sqlite3_finalize(stmt);
         return false;
@@ -174,7 +175,7 @@ bool Database::clearTable(std::string table_name)
 
 std::vector<int> Database::getNotifiableTrains(int client_id)
 {
-    std::string sql_statement = "SELECT train_id FROM notifications WHERE client_id = ?";
+    std::string sql_statement = "SELECT train_id FROM alarms WHERE client_id = ?";
     sqlite3_stmt * stmt;
     int err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
     if(err != 0) 
@@ -230,7 +231,7 @@ bool Database::deleteClient(int client_id)
         return false;
     }
     sqlite3_reset(stmt);
-    sql_statement = "DELETE FROM notifications WHERE client_id = ?";
+    sql_statement = "DELETE FROM alarms WHERE client_id = ?";
     err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
     if(err != SQLITE_OK)
         return false;
@@ -247,7 +248,7 @@ bool Database::deleteClient(int client_id)
 
 bool Database::isAlarmOnFor(int train_id, int client_id)
 {
-    std::string sql_statement = "SELECT * FROM notifications WHERE train_id = ? AND client_id = ?";
+    std::string sql_statement = "SELECT * FROM alarms WHERE train_id = ? AND client_id = ?";
     sqlite3_stmt * stmt;
     int err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
     if(err != SQLITE_OK)
@@ -265,7 +266,7 @@ bool Database::isAlarmOnFor(int train_id, int client_id)
 
 bool Database::disableAlarm(int train_id, int client_id)
 {
-    std::string sql_statement = "DELETE FROM notifications WHERE train_id = ? AND client_id = ?";
+    std::string sql_statement = "DELETE FROM alarms WHERE train_id = ? AND client_id = ?";
     sqlite3_stmt * stmt;
     int err = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
     if(err != SQLITE_OK)
@@ -279,4 +280,109 @@ bool Database::disableAlarm(int train_id, int client_id)
     }
     sqlite3_finalize(stmt);
     return true;
+}
+
+void Database::createTableClients(std::string header)
+{
+    Database database("users.db");
+    std::string sql = R"(
+        CREATE TABLE IF NOT EXISTS clients (
+            client_id INTEGER PRIMARY KEY,
+            logged INTEGER NOT NULL, 
+            station_id INTEGER NOT NULL
+        );
+    )";
+
+    int ok = database.createTable(sql);
+    if(ok != 0)
+        std::cout << header << "Error: Not able to create table logged!\n";
+}
+
+void Database::createTableUsers(std::string header)
+{
+    Database database("users.db");
+    std::string sql = R"(
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            password TEXT NOT NULL
+        );
+    )";
+    int ok = database.createTable(sql);
+    if(ok != 0)
+        std::cout << header << "Error: Not able to create table users!\n";
+}
+
+void Database::createTableAlarms(std::string header)
+{
+    Database database("users.db");
+    std::string sql = R"(
+        CREATE TABLE IF NOT EXISTS alarms (
+            alarm_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id INTEGER NOT NULL,
+            train_id INTEGER NOT NULL
+        );
+    )";
+
+    int ok = database.createTable(sql);
+    if(ok != 0)
+        std::cout << header << "Error: Not able to create table alarms!\n";
+}
+
+void Database::initDatabase(std::string header)
+{
+    Database db("users.db");
+    bool ok = db.clearTable("alarms");
+    if(!ok) 
+        std::cout << header << "Error: Cannot clear table alarms!\n";
+    ok = db.clearTable("clients");
+    if(!ok)
+        std::cout << header << "Error: Cannot clear table clients!\n";
+
+    Database::createTableUsers(header);
+    Database::createTableClients(header);
+    Database::createTableAlarms(header);
+}
+
+bool Database::setLocation(int station_id, int client_id)
+{  
+    std::string sql_statement = R"(
+        UPDATE clients
+        SET station_id = ?
+        WHERE client_id = ?
+    )";
+    sqlite3_stmt * stmt;
+    int ok = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
+    if(ok != SQLITE_OK)
+        return false;
+    sqlite3_bind_int(stmt, 1, station_id);
+    sqlite3_bind_int(stmt, 2, client_id);
+    if(sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        sqlite3_finalize(stmt);
+        return false;
+    }
+    sqlite3_finalize(stmt);
+    return true;
+}
+
+int Database::getLocation(int client_id)
+{
+    std::string sql_statement = R"(
+        SELECT station_id FROM clients
+        WHERE client_id = ?
+    )";
+    sqlite3_stmt * stmt;
+    int ok = sqlite3_prepare_v2(this->conn, sql_statement.c_str(), -1, &stmt, 0);
+    if(ok != SQLITE_OK)
+        return -1;
+    sqlite3_bind_int(stmt, 1, client_id);
+    if(sqlite3_step(stmt) != SQLITE_ROW)
+    {
+        sqlite3_finalize(stmt);
+        return -1;
+    }
+    int location = sqlite3_column_int(stmt, 0);
+    sqlite3_finalize(stmt);
+    return location;
 }
